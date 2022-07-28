@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspaceFilter version="1.0">
+    <filter root="/apps/clib-optimizer/clientlibs"/>
+    <filter root="/apps/clib-optimizer/components"/>
+    <filter root="/apps/clib-optimizer/i18n"/>
+    <filter root="/apps/msm/clib-optimizer_blueprint" mode="merge"/>
+</workspaceFilter>

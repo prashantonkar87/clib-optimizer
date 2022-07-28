@@ -1,0 +1,6 @@
+{
+    "scripts": [
+        "create service user clib-sys-user",
+    	"set ACL for clib-sys-user\n allow jcr:read on /apps,/content,/etc,/libs\nend"
+    ]
+}

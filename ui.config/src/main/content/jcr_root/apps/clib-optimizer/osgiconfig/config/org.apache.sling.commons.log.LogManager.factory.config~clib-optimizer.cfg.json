@@ -1,0 +1,8 @@
+{
+  "org.apache.sling.commons.log.names": [
+    "org.clibopt"
+  ],
+  "org.apache.sling.commons.log.level": "DEBUG",
+  "org.apache.sling.commons.log.file": "logs/clib.log",
+  "org.apache.sling.commons.log.additiv": "false"
+}
