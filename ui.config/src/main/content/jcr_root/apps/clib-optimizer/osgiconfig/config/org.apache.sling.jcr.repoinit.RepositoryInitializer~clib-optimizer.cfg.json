@@ -1,6 +1,9 @@
 {
     "scripts": [
+    	"create path /var/clibopt(sling:OrderedFolder)",
         "create service user clib-sys-user",
-    	"set ACL for clib-sys-user\n allow jcr:read on /apps,/content,/etc,/libs\nend"
+    	"set ACL for clib-sys-user\n allow jcr:read on /apps,/content,/etc,/libs\nend",
+    	"set ACL for clib-sys-user\n allow jcr:read,jcr:versionManagement,jcr:lockManagement,rep:write,crx:replicate on /var/clibopt\nend"
+    	
     ]
 }
