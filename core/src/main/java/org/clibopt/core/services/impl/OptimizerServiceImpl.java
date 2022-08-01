@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ import com.adobe.granite.ui.clientlibs.LibraryType;
 public class OptimizerServiceImpl implements OptimizerService {
 
 	private static final Logger LOG = LoggerFactory.getLogger(OptimizerServiceImpl.class);
+	private static final String CLIB_ROOT="/var/clibopt/clib";
 	private List<String> paths;
 	private List<String> ignoredClibs;
 	private boolean isOptEnabled;
@@ -75,20 +77,23 @@ public class OptimizerServiceImpl implements OptimizerService {
 	private void processJS(Document doc, String pagePath) {
 		Elements elements = doc.select("script");
 		Iterator<Element> jsIter = elements.iterator();
-		Set<String> jsClibSet = new HashSet<String>();
+		Set<String> jsClibSet = new LinkedHashSet<String>();
 		StringBuilder clibIdentifier = new StringBuilder();
 		while (jsIter.hasNext()) {
 			Element element = jsIter.next();
-			LOG.debug("Attr : " + element.attr("src"));
-			if (element.attr("src").startsWith("/etc.clientlibs") || element.attr("src").startsWith("/libs")) {
-				String hexCode = getHexCode(LibraryType.JS, element.attr("src"));
-				if (hexCode != null) {
-					jsClibSet.add(hexCode);
-					LOG.debug("hex for " + element.attr("src") + " is " + hexCode);
+			LOG.debug("Checking Attr : " + element.attr("src"));
+			String clibPath = getClibPath(LibraryType.JS, element.attr("src"));
+			if (clibPath != null) {
+				String clibcode = getClibCode(clibPath);
+				if (clibcode != null) {
+					jsClibSet.add(clibcode);
+					LOG.debug("hex for " + element.attr("src") + " is " + clibcode);
 					// element.remove();
 				} else {
 					LOG.error("Null hex for : " + element.attr("src"));
 				}
+			} else {
+				LOG.debug("Not processed " + element.attr("src"));
 			}
 		}
 		LOG.debug("id " + jsClibSet.toString());
@@ -100,27 +105,63 @@ public class OptimizerServiceImpl implements OptimizerService {
 			}
 			i++;
 		}
-		doc.select("body").first().append("<script type=\"text/javascript\" src=\"/clib."
-				+ clibIdentifier.toString() + ".js" + "\"></script>");
+		doc.select("body").first().append(
+				"<script type=\"text/javascript\" src=\"/clib." + clibIdentifier.toString() + ".js" + "\"></script>");
+	}
+
+	private String getClibPath(LibraryType type, String attr) {
+		String clibPath = null;
+		if (attr != null && (attr.startsWith("/etc.clientlibs") || attr.startsWith("/libs"))) {
+			if (attr.startsWith("/etc.clientlibs")) {
+				clibPath = attr.substring(15);
+				if (clibPath.startsWith("/clientlibs") || (clibPath.startsWith("/foundation") || (clibPath.startsWith("/settings")))) {
+					clibPath = "/libs" + clibPath;
+				} else {
+					clibPath = "/apps" + clibPath;
+				}
+			} else {
+				clibPath = attr;
+			}
+			if (type.equals(LibraryType.CSS)) {
+				clibPath = clibPath.substring(0, clibPath.indexOf(".css"));
+			} else if (type.equals(LibraryType.JS)) {
+				clibPath = clibPath.substring(0, clibPath.indexOf(".js"));
+			}
+			if (!this.ignoredClibs.contains(clibPath)) {
+				if (htmlLibManager.getLibrary(type, clibPath) == null) {
+					LOG.warn("No clientlib found under " + clibPath);
+					return null;
+				}
+				LOG.debug("Client lib found: " + clibPath);
+				return clibPath;
+			} else {
+				return null;
+			}
+		}
+		return null;
+
 	}
 
 	private void processCSS(Document doc, String pagePath) {
 		Elements elements = doc.getElementsByAttributeValueContaining("href", "clientlib");
 		Iterator<Element> cssIter = elements.iterator();
-		Set<String> cssClibSet = new HashSet<String>();
+		Set<String> cssClibSet = new LinkedHashSet<String>();
 		StringBuilder clibIdentifier = new StringBuilder();
 		while (cssIter.hasNext()) {
 			Element element = cssIter.next();
 			LOG.debug("Attr : " + element.attr("href"));
-			if (element.attr("href").startsWith("/etc.clientlibs") || element.attr("href").startsWith("/libs")) {
-				String hexCode = getHexCode(LibraryType.CSS, element.attr("href"));
-				if (hexCode != null) {
-					cssClibSet.add(hexCode);
-					LOG.debug("hex for " + element.attr("href") + " is " + hexCode);
+			String clibPath = getClibPath(LibraryType.CSS, element.attr("href"));
+			if (clibPath != null) {
+				String clibcode = getClibCode(clibPath);
+				if (clibcode != null) {
+					cssClibSet.add(clibcode);
+					LOG.debug("hex for " + element.attr("href") + " is " + clibcode);
 					// element.remove();
 				} else {
 					LOG.error("Null hex for : " + element.attr("href"));
 				}
+			} else {
+				LOG.debug("Not processed " + element.attr("href"));
 			}
 		}
 		LOG.debug("id " + cssClibSet.toString());
@@ -132,33 +173,11 @@ public class OptimizerServiceImpl implements OptimizerService {
 			}
 			i++;
 		}
-		doc.select("head").first().append(" <link rel=\"stylesheet\" href=\"/clib." + clibIdentifier.toString()
-				+ ".css\" type=\"text/css\">");
+		doc.select("head").first().append(
+				" <link rel=\"stylesheet\" href=\"/clib." + clibIdentifier.toString() + ".css\" type=\"text/css\">");
 	}
 
-	private String getHexCode(LibraryType type, String clibPath) {
-		LOG.debug("processing clibpath " + clibPath);
-		if (clibPath.startsWith("/etc.clientlibs")) {
-			clibPath = clibPath.substring(15);
-			if (clibPath.startsWith("/clientlibs") || (clibPath.startsWith("/foundation"))) {
-				clibPath = "/libs" + clibPath;
-			} else {
-				clibPath = "/apps" + clibPath;
-			}
-		}
-		LOG.debug("after substring " + clibPath);
-
-		if (type.equals(LibraryType.CSS)) {
-			clibPath = clibPath.substring(0, clibPath.indexOf(".css"));
-		} else if (type.equals(LibraryType.JS)) {
-			clibPath = clibPath.substring(0, clibPath.indexOf(".js"));
-		}
-		LOG.debug("processed clibpath " + clibPath);
-		// LOG.debug("clib " + htmlLibManager.getLibrary(type, clibPath).getName());
-		if (htmlLibManager.getLibrary(type, clibPath) == null) {
-			LOG.warn("No clientlib found under " + clibPath);
-			return null;
-		}
+	private String getClibCode(String clibPath) {
 		if (resourceResolver == null) {
 			Map<String, Object> param = new HashMap<>();
 			param.put(ResourceResolverFactory.SUBSERVICE, "readClientLibs");
@@ -168,75 +187,86 @@ public class OptimizerServiceImpl implements OptimizerService {
 				LOG.error("Unable to initialize service user " + e);
 			}
 		}
-		Resource clibopt = resourceResolver.getResource("/var/clibopt" + clibPath);
-		String hexCount;
+		Resource clibopt = resourceResolver.getResource(CLIB_ROOT +  getClibNodeName(clibPath));
+		Long maxClibCodeCount;
 		if (clibopt != null) {
 			LOG.debug("clibopt entry present for " + clibopt.getPath());
-			LOG.debug("hex " + clibopt.getValueMap().get("hexCode", String.class));
-			if (clibopt.getValueMap().get("hexCode", String.class) == null) {
-				clibopt.adaptTo(ModifiableValueMap.class).put("hexCode", generateHexCode());
+			LOG.debug("hex " + clibopt.getValueMap().get("clibCode", String.class));
+			if (clibopt.getValueMap().get("clibCode", String.class) == null) {
+				LOG.debug("Creating new hex ");
+				clibopt.adaptTo(ModifiableValueMap.class).put("clibCode", generateClibCode());
 				try {
 					resourceResolver.commit();
 				} catch (PersistenceException e) {
-					LOG.error("Unable to create under/var/clibopt" + clibPath, e);
+					LOG.error("Unable to create under "+CLIB_ROOT+" " +  getClibNodeName(clibPath), e);
 				}
 			}
-			return clibopt.getValueMap().get("hexCode", String.class);
+			return clibopt.getValueMap().get("clibCode", String.class);
 		} else {
 			LOG.debug("clibopt entry not present for " + clibPath);
 			Map<String, Object> map = new HashMap<String, Object>();
-			String hexCode = "";
+			Long clibCode = 0L;
 			// get max hex count
-			hexCount = resourceResolver.getResource("/var/clibopt").getValueMap().get("hexCount", String.class);
+			maxClibCodeCount = resourceResolver.getResource(CLIB_ROOT).getValueMap().get("maxClibCodeCount",
+					Long.class);
 			;
-			LOG.debug("hexcount " + hexCount);
-			if (hexCount == null) {
+			LOG.debug("maxClibCodeCount " + maxClibCodeCount);
+			if (maxClibCodeCount == null) {
 				LOG.debug("initializing hexcount ");
-				hexCount = "0";
-				hexCode = "0";
-				updateHexCount("0");
-			} else if (hexCount.equals("0")) {
-				hexCode = "1";
-				updateHexCount("1");
+				maxClibCodeCount = 0L;
+				clibCode = 0L;
+				updateMaxClibCodeCount(0L);
+			} else if (maxClibCodeCount == 0L) {
+				maxClibCodeCount = 1L;
+				clibCode = 1L;
+				updateMaxClibCodeCount(1L);
 			} else {
-				hexCode = convertIntToBase36String(convertBase36StringToInt(hexCount) + 1);
-				updateHexCount(hexCode);
-				LOG.debug("After incrementing hexcount : " + hexCode);
+				clibCode = maxClibCodeCount + 1L;
+				updateMaxClibCodeCount(clibCode);
+				LOG.debug("After incrementing hexcount : " + clibCode);
 			}
 			// create clibopt entry
-			map.put("hexCode", hexCode);
+			map.put("clibCode", clibCode);
+			map.put("clibPath", clibPath);
 			map.put("jcr:primaryType", "nt:unstructured");
 			try {
-				ResourceUtil.getOrCreateResource(resourceResolver, "/var/clibopt" + clibPath, map, "nt:unstructured",
+				ResourceUtil.getOrCreateResource(resourceResolver, CLIB_ROOT + "/"+getClibNodeName(clibPath), map, "nt:unstructured",
 						true);
+//				resourceResolver.create(resourceResolver.getResource(CLIB_ROOT), getClibNodeName(clibPath), map);
+//				resourceResolver.commit();
 			} catch (PersistenceException e) {
-				LOG.error("Unable to create under/var/clibopt" + clibPath, e);
+				LOG.error("Unable to create under/var/clibopt" + getClibNodeName(clibPath), e);
 			}
-
-			return hexCode;
+			return convertIntToBase36String(clibCode);
 		}
 	}
 
-	private String generateHexCode() {
-		String hexCount = resourceResolver.getResource("/var/clibopt").getValueMap().get("hexCount", String.class);
-		return convertIntToBase36String(convertBase36StringToInt(hexCount) + 1);
+	private String getClibNodeName(String clibPath) {
+		LOG.debug("Node name "+clibPath.replaceAll("/", "-").substring(1, clibPath.length()));
+		return clibPath.replaceAll("/", "-").substring(1, clibPath.length());
 	}
 
-	private String convertIntToBase36String(int i) {
-		return Integer.toString(i, 36);
+	private String generateClibCode() {
+		Long maxClibCodeCount = resourceResolver.getResource(CLIB_ROOT).getValueMap().get("maxClibCodeCount",
+				Long.class);
+		return convertIntToBase36String(maxClibCodeCount + 1);
 	}
 
-	private int convertBase36StringToInt(String hexCode) {
-		return Integer.parseInt(hexCode, 36);
+	private String convertIntToBase36String(Long i) {
+		return Integer.toString(i.intValue(), 36);
 	}
 
-	private void updateHexCount(String hexCount) {
-		ModifiableValueMap valueMap = resourceResolver.getResource("/var/clibopt").adaptTo(ModifiableValueMap.class);
-		valueMap.put("hexCount", hexCount);
+	private int convertBase36StringToInt(String clibCode) {
+		return Integer.parseInt(clibCode, 36);
+	}
+
+	private void updateMaxClibCodeCount(Long maxClibCodeCount) {
+		ModifiableValueMap valueMap = resourceResolver.getResource(CLIB_ROOT).adaptTo(ModifiableValueMap.class);
+		valueMap.put("maxClibCodeCount", maxClibCodeCount);
 		try {
 			resourceResolver.commit();
 		} catch (PersistenceException e) {
-			LOG.error("Unable to initialize hexCount in /var/clibopt ", e);
+			LOG.error("Unable to initialize maxClibCodeCount in /var/clibopt ", e);
 		}
 	}
 
