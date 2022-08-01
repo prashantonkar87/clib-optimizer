@@ -81,9 +81,14 @@ public class OptimizerServiceImpl implements OptimizerService {
 			Element element = jsIter.next();
 			LOG.debug("Attr : " + element.attr("src"));
 			if (element.attr("src").startsWith("/etc.clientlibs") || element.attr("src").startsWith("/libs")) {
-				jsClibSet.add(getHexCode(LibraryType.JS, element.attr("src")));
-				LOG.debug("hex for "+element.attr("src") + getHexCode(LibraryType.JS, element.attr("src")));
-				// element.remove();
+				String hexCode = getHexCode(LibraryType.JS, element.attr("src"));
+				if (hexCode != null) {
+					jsClibSet.add(hexCode);
+					LOG.debug("hex for " + element.attr("src") + " is " + hexCode);
+					// element.remove();
+				} else {
+					LOG.error("Null hex for : " + element.attr("src"));
+				}
 			}
 		}
 		LOG.debug("id " + jsClibSet.toString());
@@ -95,7 +100,7 @@ public class OptimizerServiceImpl implements OptimizerService {
 			}
 			i++;
 		}
-		doc.select("body").first().append("<script type=\"text/javascript\" src=\"/bin/clibopt."
+		doc.select("body").first().append("<script type=\"text/javascript\" src=\"/clib."
 				+ clibIdentifier.toString() + ".js" + "\"></script>");
 	}
 
@@ -108,10 +113,14 @@ public class OptimizerServiceImpl implements OptimizerService {
 			Element element = cssIter.next();
 			LOG.debug("Attr : " + element.attr("href"));
 			if (element.attr("href").startsWith("/etc.clientlibs") || element.attr("href").startsWith("/libs")) {
-				cssClibSet.add(getHexCode(LibraryType.CSS, element.attr("href")));
-				LOG.debug("Element : " + element.outerHtml());
-				LOG.debug("href : " + element.attr("href"));
-				// element.remove();
+				String hexCode = getHexCode(LibraryType.CSS, element.attr("href"));
+				if (hexCode != null) {
+					cssClibSet.add(hexCode);
+					LOG.debug("hex for " + element.attr("href") + " is " + hexCode);
+					// element.remove();
+				} else {
+					LOG.error("Null hex for : " + element.attr("href"));
+				}
 			}
 		}
 		LOG.debug("id " + cssClibSet.toString());
@@ -123,7 +132,7 @@ public class OptimizerServiceImpl implements OptimizerService {
 			}
 			i++;
 		}
-		doc.select("head").first().append(" <link rel=\"stylesheet\" href=\"/bin/clibopt." + clibIdentifier.toString()
+		doc.select("head").first().append(" <link rel=\"stylesheet\" href=\"/clib." + clibIdentifier.toString()
 				+ ".css\" type=\"text/css\">");
 	}
 
@@ -164,7 +173,7 @@ public class OptimizerServiceImpl implements OptimizerService {
 		if (clibopt != null) {
 			LOG.debug("clibopt entry present for " + clibopt.getPath());
 			LOG.debug("hex " + clibopt.getValueMap().get("hexCode", String.class));
-			if(clibopt.getValueMap().get("hexCode", String.class)==null) {
+			if (clibopt.getValueMap().get("hexCode", String.class) == null) {
 				clibopt.adaptTo(ModifiableValueMap.class).put("hexCode", generateHexCode());
 				try {
 					resourceResolver.commit();
@@ -178,7 +187,8 @@ public class OptimizerServiceImpl implements OptimizerService {
 			Map<String, Object> map = new HashMap<String, Object>();
 			String hexCode = "";
 			// get max hex count
-			hexCount = resourceResolver.getResource("/var/clibopt").getValueMap().get("hexCount", String.class);;
+			hexCount = resourceResolver.getResource("/var/clibopt").getValueMap().get("hexCount", String.class);
+			;
 			LOG.debug("hexcount " + hexCount);
 			if (hexCount == null) {
 				LOG.debug("initializing hexcount ");
