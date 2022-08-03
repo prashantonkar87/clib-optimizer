@@ -73,7 +73,7 @@ public class OptimizerServlet extends SlingSafeMethodsServlet {
 		}
 		try (PrintWriter printWriter = new PrintWriter(new GZIPOutputStream(resp.getOutputStream()))) {
 			resp.setHeader("Content-Encoding", "gzip");
-			resp.setContentLength(responseString.length());
+			//resp.setContentLength(responseString.length());
 			printWriter.write(responseString);
 		}
 	}

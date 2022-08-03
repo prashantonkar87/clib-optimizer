@@ -107,6 +107,9 @@ public class OptimizerServiceImpl implements OptimizerService {
 		while (cssIter.hasNext()) {
 			Element element = cssIter.next();
 			LOG.debug("Attr : " + element.attr("href"));
+			if(!element.attr("rel").equals("stylesheet")) {
+				continue;
+			}
 			String clibPath = getClibPath(LibraryType.CSS, element.attr("href"));
 			if (clibPath != null) {
 				String clibcode = optimizerCache.getClibCode(clibPath);

@@ -49,7 +49,7 @@ public class OptimizerFilter implements Filter {
 		SlingHttpServletRequest req = (SlingHttpServletRequest) request;
 		LOG.debug("req : "+req.getRequestPathInfo().getResourcePath());
 		String optimizedHTML = optimizerService.optimizeClientLibs(wrapper.toString(),req.getRequestPathInfo().getResourcePath());
-		response.setContentLength(optimizedHTML.length());
+		//response.setContentLength(optimizedHTML.length());
 		response.getOutputStream().write(optimizedHTML.getBytes());
 	}
 
