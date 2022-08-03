@@ -19,10 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.io.SequenceInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.Servlet;
@@ -30,7 +26,6 @@ import javax.servlet.ServletException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.apache.sling.api.servlets.SlingSafeMethodsServlet;
 import org.apache.sling.servlets.annotations.SlingServletName;
 import org.apache.sling.servlets.annotations.SlingServletPaths;
@@ -45,18 +40,7 @@ import com.adobe.granite.ui.clientlibs.HtmlLibrary;
 import com.adobe.granite.ui.clientlibs.HtmlLibraryManager;
 import com.adobe.granite.ui.clientlibs.LibraryType;
 
-/**
- * Servlet that writes some sample content into the response. It is mounted for
- * all resources of a specific Sling resource type. The
- * {@link SlingSafeMethodsServlet} shall be used for HTTP methods that are
- * idempotent. For write operations use the {@link SlingAllMethodsServlet}.
- */
 @Component(service = { Servlet.class })
-//@SlingServletResourceTypes(
-//		
-//        resourceTypes="clib-optimizer/components/page",
-//        methods=HttpConstants.METHOD_GET,
-//        extensions="txt")
 @SlingServletPaths(value = { "/bin/clib" })
 @SlingServletName(servletName = "Clib Optimier Servlet")
 @ServiceDescription("Client Library Optimizer Servlet")
@@ -74,84 +58,63 @@ public class OptimizerServlet extends SlingSafeMethodsServlet {
 	@Override
 	protected void doGet(final SlingHttpServletRequest req, final SlingHttpServletResponse resp)
 			throws ServletException, IOException {
-		List<InputStream> inputStreams = new ArrayList<InputStream>();
 		LOG.debug("Selectors : " + req.getRequestPathInfo().getSelectorString());
 		LOG.debug("Extension : " + req.getRequestPathInfo().getExtension());
 		String responseString = "";
-		if (req.getRequestPathInfo().getExtension().equalsIgnoreCase("css")) {
-			resp.setContentType("text/css;charset=utf-8");
-			responseString = getInputStreams(LibraryType.CSS, req.getRequestPathInfo().getSelectorString());
-		} else if (req.getRequestPathInfo().getExtension().equalsIgnoreCase("js")) {
-			resp.setContentType("application/javascript;charset=utf-8");
-			responseString = getInputStreams(LibraryType.JS, req.getRequestPathInfo().getSelectorString());
+		if(req.getRequestPathInfo().getSelectorString()==null || req.getRequestPathInfo().getSelectorString().isEmpty()) {
+			return;
 		}
-		byte[] buffer = new byte[4096];
-		int noOfBytesRead;
+		if (req.getRequestPathInfo().getExtension().equalsIgnoreCase(LibraryType.CSS.toString())) {
+			resp.setContentType("text/css;charset=utf-8");
+			responseString = getResponseString(LibraryType.CSS, req.getRequestPathInfo().getSelectorString());
+		} else if (req.getRequestPathInfo().getExtension().equalsIgnoreCase(LibraryType.JS.toString())) {
+			resp.setContentType("application/javascript;charset=utf-8");
+			responseString = getResponseString(LibraryType.JS, req.getRequestPathInfo().getSelectorString());
+		}
 		try (PrintWriter printWriter = new PrintWriter(new GZIPOutputStream(resp.getOutputStream()))) {
 			resp.setHeader("Content-Encoding", "gzip");
 			resp.setContentLength(responseString.length());
-			 printWriter.write(responseString);
-//			int contentLength = 0;
-//			for (InputStream inputStream : inputStreams) {
-//				if (inputStream == null) {
-//					continue;
-//				}
-//				contentLength = contentLength+inputStream.available();
-//				while ((noOfBytesRead = inputStream.read(buffer)) != -1) {
-//					printWriter.write(new String(buffer, StandardCharsets.UTF_8).toCharArray(), 0, noOfBytesRead);
-//				}
-//			}
-//			resp.setContentLength(contentLength);
-//			printWriter.flush();
-//			printWriter.close();
-//			resp.getOutputStream().close();
+			printWriter.write(responseString);
 		}
-
-		// resp.getOutputStream().write(responseString.getBytes());
 	}
 
-	private String getInputStreams(LibraryType type, String clibCodeSelector) {
+	private String getResponseString(LibraryType type, String clibCodeSelector) {
 		String[] clibCodes = clibCodeSelector.split("-");
 		StringBuilder responseString = new StringBuilder();
-//		List<InputStream> isList = new ArrayList<InputStream>();
 		for (String clibCode : clibCodes) {
-			// clibCodeList.add(optimizerService.getClibPath(clibCode));
 			String clibPath = optimizerService.getClibPath(clibCode);
 			LOG.debug("Found clib " + clibPath + " for " + clibCode);
 			HtmlLibrary lib = htmlLibManager.getLibrary(type, clibPath);
 			if (lib != null) {
 				try {
+					responseString.append("\n/*clibopt start of " + clibPath + "*/\n");
 					responseString.append(getResponseStringFromInputStream(lib.getInputStream(true)));
 					responseString.append("\n/*clibopt end of " + clibPath + "*/\n");
-//					isList.add(lib.getInputStream(true));
 				} catch (IOException e) {
 					LOG.error("Error in reading input stream ", e);
 				}
-
 			} else {
 				LOG.error("Library not found for " + clibPath);
 			}
-
 		}
 		return responseString.toString();
 
 	}
 
 	private String getResponseStringFromInputStream(InputStream inputStream) {
-
-		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+//		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 		int nRead;
 		byte[] data = new byte[4096];
-		try {
+		String response = null;
+		try (ByteArrayOutputStream buffer = new ByteArrayOutputStream()){
 			while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
 				buffer.write(data, 0, nRead);
 			}
 			buffer.flush();
+			response = buffer.toString();
 		} catch (IOException e) {
 			LOG.error("Error in reading input stream ", e);
 		}
-		byte[] byteArray = buffer.toByteArray();
-		String text = new String(byteArray, StandardCharsets.UTF_8);
-		return text;
+		return response;
 	}
 }

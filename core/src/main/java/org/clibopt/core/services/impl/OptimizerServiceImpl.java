@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.clibopt.core.services.OptimizerCacheService;
@@ -79,7 +78,7 @@ public class OptimizerServiceImpl implements OptimizerService {
 				if (clibcode != null) {
 					jsClibSet.add(clibcode);
 					LOG.debug("hex for " + element.attr("src") + " is " + clibcode);
-					//element.remove();
+					element.remove();
 				} else {
 					LOG.error("Null hex for : " + element.attr("src"));
 				}
@@ -114,7 +113,7 @@ public class OptimizerServiceImpl implements OptimizerService {
 				if (clibcode != null) {
 					cssClibSet.add(clibcode);
 					LOG.debug("hex for " + element.attr("href") + " is " + clibcode);
-					//element.remove();
+					element.remove();
 				} else {
 					LOG.error("Null hex for : " + element.attr("href"));
 				}

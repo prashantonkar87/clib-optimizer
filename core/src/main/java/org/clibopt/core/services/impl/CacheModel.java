@@ -5,12 +5,12 @@ import java.util.List;
 class CacheModel {
 	private String clibCode;
 	private String clibPath;
-	private String[] categories;
+//	private String[] categories;
 
-	public CacheModel(String clibPath, String clibCode, String[] categories) {
+	public CacheModel(String clibPath, String clibCode/*, String[] categories*/) {
 		this.clibCode = clibCode;
 		this.clibPath = clibPath;
-		this.categories = categories;
+//		this.categories = categories;
 	}
 
 	public String getClibCode() {
@@ -29,12 +29,12 @@ class CacheModel {
 		this.clibPath = clibPath;
 	}
 
-	public String[] getCategories() {
-		return categories;
-	}
-
-	public void setCategories(String[] categories) {
-		this.categories = categories;
-	}
+//	public String[] getCategories() {
+//		return categories;
+//	}
+//
+//	public void setCategories(String[] categories) {
+//		this.categories = categories;
+//	}
 
 }

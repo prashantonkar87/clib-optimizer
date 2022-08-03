@@ -12,25 +12,25 @@ public class OptimizerCacheModel {
 //	@Reference
 //	ResourceResolverFactory resolverFactory;
 	
-	private Map<String, CacheModel> codeWiseCache;
-	private Map<String, CacheModel> pathWiseCache;
+	private Map<String, String> codeWiseCache;
+	private Map<String, String> pathWiseCache;
 	
 	public OptimizerCacheModel() {
-		codeWiseCache = new HashMap<String,CacheModel>();
-		pathWiseCache = new HashMap<String,CacheModel>();
+		codeWiseCache = new HashMap<String,String>();
+		pathWiseCache = new HashMap<String,String>();
 	}
 
-	public CacheModel getClibWithCode(String clibCode) {
+	public String getClibWithCode(String clibCode) {
 		return codeWiseCache.get(clibCode);
 	}
 
-	public CacheModel getClibWithPath(String clibPath) {
+	public String getClibWithPath(String clibPath) {
 		return pathWiseCache.get(clibPath);
 	}
 
-	public void updateCache(CacheModel model) {
-		pathWiseCache.put(model.getClibPath(), model);
-		codeWiseCache.put(model.getClibCode(), model);
+	public void updateCache(String clibPath, String clibCode) {
+		pathWiseCache.put(clibPath, clibCode);
+		codeWiseCache.put(clibCode, clibPath);
 	}
 	
 	

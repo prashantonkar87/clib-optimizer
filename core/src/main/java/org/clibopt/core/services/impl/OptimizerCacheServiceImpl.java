@@ -53,9 +53,9 @@ public class OptimizerCacheServiceImpl implements OptimizerCacheService {
 
 	private void updateCache(String clibPath, Long clibCode) {
 		initializeResourceResolver();
-		String[] categories = resourceResolver.getResource(clibPath).getValueMap().get("categories", String[].class);
-		CacheModel model = new CacheModel(clibPath, convertIntToBase36String(clibCode), categories);
-		cache.updateCache(model);
+//		String[] categories = resourceResolver.getResource(clibPath).getValueMap().get("categories", String[].class);
+//		CacheModel model = new CacheModel(clibPath, convertIntToBase36String(clibCode));
+		cache.updateCache(clibPath, convertIntToBase36String(clibCode));
 	}
 
 	@Override
@@ -63,23 +63,24 @@ public class OptimizerCacheServiceImpl implements OptimizerCacheService {
 
 		if (cache.getClibWithPath(clibPath) != null) {
 			LOG.debug("Found in cache ");
-			return cache.getClibWithPath(clibPath).getClibCode();
+			return cache.getClibWithPath(clibPath);
 		}
 
 		initializeResourceResolver();
-		Resource clibopt = resourceResolver.getResource(CLIB_ROOT + getClibNodeName(clibPath));
+		Resource clibopt = resourceResolver.getResource(CLIB_ROOT +"/"+ getClibNodeName(clibPath));
 		Long maxClibCodeCount;
 		Long clibCode = null;
 		if (clibopt != null) {
-			LOG.debug("clibopt entry present for " + clibopt.getPath());
+			LOG.debug("clibopt entry present for " + clibopt.getPath()+" "+getClibNodeName(clibPath));
 			LOG.debug("hex " + clibopt.getValueMap().get("clibCode", String.class));
-			if (clibopt.getValueMap().get("clibCode", String.class) == null) {
+			clibCode = clibopt.getValueMap().get("clibCode", Long.class);
+			if (clibCode == null) {
 				LOG.debug("Creating new hex ");
 				clibCode = generateClibCode();
 				ModifiableValueMap map = clibopt.adaptTo(ModifiableValueMap.class);
 				map.put(clibPath, map);
-				map.put("categories",
-						resourceResolver.getResource(clibPath).getValueMap().get("categories", String[].class));
+//				map.put("categories",
+//						resourceResolver.getResource(clibPath).getValueMap().get("categories", String[].class));
 				try {
 					resourceResolver.commit();
 				} catch (PersistenceException e) {
@@ -87,9 +88,9 @@ public class OptimizerCacheServiceImpl implements OptimizerCacheService {
 				}
 			}
 			updateCache(clibPath, clibCode);
-			return clibopt.getValueMap().get("clibCode", String.class);
+			return convertIntToBase36String(clibCode);
 		} else {
-			LOG.debug("clibopt entry not present for " + clibPath);
+			LOG.debug("clibopt entry not present for " + clibPath+" "+getClibNodeName(clibPath));
 			Map<String, Object> map = new HashMap<String, Object>();
 			// get max hex count
 			maxClibCodeCount = resourceResolver.getResource(CLIB_ROOT).getValueMap().get("maxClibCodeCount",
@@ -113,8 +114,8 @@ public class OptimizerCacheServiceImpl implements OptimizerCacheService {
 			// create clibopt entry
 			map.put("clibCode", clibCode);
 			map.put("clibPath", clibPath);
-			map.put("categories",
-					resourceResolver.getResource(clibPath).getValueMap().get("categories", String[].class));
+//			map.put("categories",
+//					resourceResolver.getResource(clibPath).getValueMap().get("categories", String[].class));
 			map.put("jcr:primaryType", "nt:unstructured");
 			try {
 				ResourceUtil.getOrCreateResource(resourceResolver, CLIB_ROOT + "/" + getClibNodeName(clibPath), map,
@@ -175,7 +176,7 @@ public class OptimizerCacheServiceImpl implements OptimizerCacheService {
 	public String getClibPath(String clibCode) {
 
 		if (cache.getClibWithCode(clibCode) != null) {
-			return cache.getClibWithCode(clibCode).getClibPath();
+			return cache.getClibWithCode(clibCode);
 		} else {
 			initializeResourceResolver();
 			Map<String, Object> map = new HashMap<String, Object>();
