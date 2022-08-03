@@ -102,7 +102,6 @@ public class OptimizerServlet extends SlingSafeMethodsServlet {
 	}
 
 	private String getResponseStringFromInputStream(InputStream inputStream) {
-//		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 		int nRead;
 		byte[] data = new byte[4096];
 		String response = null;

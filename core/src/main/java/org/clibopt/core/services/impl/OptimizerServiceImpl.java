@@ -153,6 +153,9 @@ public class OptimizerServiceImpl implements OptimizerService {
 			} else if (type.equals(LibraryType.JS)) {
 				clibPath = clibPath.substring(0, clibPath.indexOf(".js"));
 			}
+			if(clibPath.endsWith(".min")) {
+				clibPath = clibPath.substring(0, clibPath.indexOf(".min"));
+			}
 			if (!this.ignoredClibs.contains(clibPath)) {
 				if (htmlLibManager.getLibrary(type, clibPath) == null) {
 					LOG.warn("No clientlib found under " + clibPath);
